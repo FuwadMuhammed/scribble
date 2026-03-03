@@ -256,6 +256,7 @@ function resolvePlacement(id: string, desiredX: number, desiredY: number, notes:
 function App() {
   const supabase = getSupabaseClient()
   const supabaseRef = useRef<SupabaseClient | null>(supabase)
+  const [syncError, setSyncError] = useState<string | null>(null)
   const [notes, setNotes] = useState<Note[]>(() =>
     supabase ? [] : centerNotesInCanvas(initialNotes),
   )
@@ -512,10 +513,20 @@ function App() {
         .order('z', { ascending: true })
 
       if (cancelled) return
-      if (error || !data) return
+      if (error || !data) {
+        setSyncError(`Supabase load failed: ${error?.message ?? 'unknown error'}`)
+        return
+      }
 
       const loaded = (data as unknown as DbNote[]).map(toNote)
-      setNotes(loaded)
+      setSyncError(null)
+      setNotes((prev) => {
+        if (prev.length === 0) return loaded
+        const map = new Map<string, Note>()
+        for (const n of prev) map.set(n.id, n)
+        for (const n of loaded) map.set(n.id, n)
+        return Array.from(map.values()).sort((a, b) => a.z - b.z)
+      })
 
       const vp = viewportRef.current
       if (!vp) return
@@ -628,13 +639,12 @@ function App() {
       z: maxZ + 1,
     }
 
+    const placed = resolvePlacement(next.id, desiredX, desiredY, notes)
     setNotes((prev) => {
-      const placed = resolvePlacement(next.id, desiredX, desiredY, prev)
       return [...prev, { ...next, x: placed.x, y: placed.y }]
     })
 
     if (sb) {
-      const placed = resolvePlacement(next.id, desiredX, desiredY, notes)
       void sb
         .from('notes')
         .insert({
@@ -648,7 +658,7 @@ function App() {
         } satisfies DbNote)
         .then(({ error }) => {
           if (!error) return
-          setNotes((prev) => prev.filter((n) => n.id !== next.id))
+          setSyncError(`Supabase insert failed: ${error.message}`)
         })
     }
 
@@ -659,6 +669,21 @@ function App() {
 
   return (
     <div className="relative h-screen w-screen bg-[#F4F4F4]">
+      {syncError ? (
+        <div className="pointer-events-auto fixed left-1/2 top-4 z-30 w-[min(760px,92vw)] -translate-x-1/2 rounded-[14px] bg-[#111111] px-4 py-3 font-hand text-[16px] leading-[1.15] text-white shadow-float">
+          <div className="flex items-start justify-between gap-3">
+            <div>{syncError}</div>
+            <button
+              type="button"
+              className="shrink-0 rounded-full px-2 py-0.5 text-white/80 transition-colors hover:text-white"
+              onClick={() => setSyncError(null)}
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div
         ref={viewportRef}
         className="absolute inset-0 overflow-auto touch-none overscroll-none"
