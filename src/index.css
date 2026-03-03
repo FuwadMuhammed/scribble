@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+.wall-bg {
+  background-color: #f4f4f4;
+  background-image: radial-gradient(rgba(17, 24, 39, 0.12) 1px, transparent 0);
+  background-size: 18px 18px;
+  background-position: 0 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 180ms ease-out both;
+}
+
+.pop-in {
+  animation: popIn 200ms ease-out both;
+}
