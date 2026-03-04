@@ -274,6 +274,15 @@ function resolvePlacement(id: string, desiredX: number, desiredY: number, notes:
   return { x: baseX, y: baseY }
 }
 
+function spreadNotes(notes: Note[]) {
+  const out: Note[] = []
+  for (const n of notes.slice().sort((a, b) => a.z - b.z)) {
+    const placed = resolvePlacement(n.id, n.x, n.y, out)
+    out.push({ ...n, x: placed.x, y: placed.y })
+  }
+  return out
+}
+
 function App() {
   const supabase = getSupabaseClient()
   const supabaseRef = useRef<SupabaseClient | null>(supabase)
@@ -555,12 +564,13 @@ function App() {
       }
 
       const loaded = (data as unknown as DbNote[]).map(toNote)
+      const spread = spreadNotes(loaded)
       setSyncError(null)
       setNotes((prev) => {
-        if (prev.length === 0) return loaded
+        if (prev.length === 0) return spread
         const map = new Map<string, Note>()
         for (const n of prev) map.set(n.id, n)
-        for (const n of loaded) map.set(n.id, n)
+        for (const n of spread) map.set(n.id, n)
         return Array.from(map.values()).sort((a, b) => a.z - b.z)
       })
 
@@ -568,7 +578,7 @@ function App() {
       if (!vp) return
       requestAnimationFrame(() => {
         const z = zoomRef.current
-        const b = getNotesBounds(loaded)
+        const b = getNotesBounds(spread)
         const cx = Number.isFinite(b.cx) ? b.cx : CANVAS_W / 2
         const cy = Number.isFinite(b.cy) ? b.cy : CANVAS_H / 2
         vp.scrollLeft = Math.max(0, cx * z - vp.clientWidth / 2)
@@ -589,8 +599,12 @@ function App() {
             const row = payload.new as unknown as DbNote
             setNotes((prev) => {
               const exists = prev.some((n) => n.id === row.id)
-              if (!exists) return [...prev, toNote(row)]
-              return prev.map((n) => (n.id === row.id ? { ...n, ...toNote(row) } : n))
+              const next = toNote(row)
+              if (!exists) {
+                const placed = resolvePlacement(next.id, next.x, next.y, prev)
+                return [...prev, { ...next, x: placed.x, y: placed.y }]
+              }
+              return prev.map((n) => (n.id === row.id ? { ...n, ...next } : n))
             })
           } else if (eventType === 'DELETE') {
             const row = payload.old as unknown as { id: string }
