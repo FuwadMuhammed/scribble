@@ -157,6 +157,27 @@ function toNote(row: DbNote): Note {
   }
 }
 
+function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  )
+}
+
 const prompts = [
   { text: 'What made you smile today?', className: 'left-[8%] top-[18%] hidden md:flex' },
   { text: 'Drop a thought.', className: 'left-[16%] top-[34%] hidden md:flex' },
@@ -257,6 +278,7 @@ function App() {
   const supabase = getSupabaseClient()
   const supabaseRef = useRef<SupabaseClient | null>(supabase)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [isCreditsOpen, setIsCreditsOpen] = useState(false)
   const [notes, setNotes] = useState<Note[]>(() =>
     supabase ? [] : centerNotesInCanvas(initialNotes),
   )
@@ -266,6 +288,7 @@ function App() {
   const [zoom, setZoom] = useState(1)
   const zoomRef = useRef(1)
   const viewportRef = useRef<HTMLDivElement | null>(null)
+  const creditsRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{
     id: string
     dx: number
@@ -313,8 +336,21 @@ function App() {
   }
 
   function openModal() {
+    setIsCreditsOpen(false)
     setIsModalOpen(true)
   }
+
+  useEffect(() => {
+    if (!isCreditsOpen) return
+    function onPointerDown(e: PointerEvent) {
+      const root = creditsRef.current
+      if (!root) return
+      if (root.contains(e.target as Node)) return
+      setIsCreditsOpen(false)
+    }
+    window.addEventListener('pointerdown', onPointerDown)
+    return () => window.removeEventListener('pointerdown', onPointerDown)
+  }, [isCreditsOpen])
 
   useEffect(() => {
     zoomRef.current = zoom
@@ -727,74 +763,98 @@ function App() {
         </div>
       </div>
 
-      <div className="pointer-events-none fixed bottom-6 left-6 z-20 flex items-end gap-4 md:bottom-10 md:left-10">
-        <div className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-[10px] bg-[#F6B7C7] shadow-note">
-          <div className="font-hand text-[14px] leading-[1] text-[#2F2F2F]">
-            <div>MY</div>
-            <div>NOTES</div>
-          </div>
-        </div>
-        <div className="pointer-events-auto flex items-center gap-2 text-[14px] text-[#2F2F2F]/70">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+      <div className="pointer-events-none fixed bottom-[calc(12px+env(safe-area-inset-bottom))] left-1/2 z-20 w-[calc(100vw-24px)] max-w-[calc(100vw-24px)] -translate-x-1/2 md:w-fit">
+        <div className="pointer-events-auto flex items-center justify-between gap-0 rounded-xl bg-[#ffffff] px-1.5 py-1.5 font-hand text-black shadow-float md:justify-start md:gap-2 md:px-2 md:py-2">
+          <div
+            ref={creditsRef}
+            className="relative group"
+            onMouseLeave={() => setIsCreditsOpen(false)}
           >
-            <path
-              d="M7 2H17C19.7614 2 22 4.23858 22 7V17C22 19.7614 19.7614 22 17 22H7C4.23858 22 2 19.7614 2 17V7C2 4.23858 4.23858 2 7 2Z"
-              stroke="currentColor"
-              strokeWidth="1.6"
-            />
-            <path
-              d="M16 11.37C16.1137 12.1354 15.983 12.9172 15.6263 13.6065C15.2696 14.2958 14.7049 14.8586 14.0142 15.2126C13.3235 15.5666 12.5413 15.6943 11.7763 15.5775C11.0114 15.4607 10.302 15.1054 9.748 14.562C9.194 14.0186 8.82488 13.3161 8.69388 12.5533C8.56288 11.7906 8.67623 11.0061 9.01768 10.3116C9.35913 9.61714 9.91152 9.04659 10.5955 8.67984C11.2795 8.31309 12.0588 8.16842 12.83 8.26699"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M17.5 6.5H17.51"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-            />
-          </svg>
-          <div>
-            Designed by <span className="text-[#2F2F2F]/80">Aysha Shaba</span>
-          </div>
-        </div>
-      </div>
+            <button
+              type="button"
+              className="relative z-10 flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#F6B7C7] shadow-note transition-transform duration-200 ease-out group-hover:-translate-y-0.5 md:h-12 md:w-12"
+              onClick={() => setIsCreditsOpen((v) => !v)}
+              aria-label="Credits"
+            >
+              <div className="font-hand text-[11px] leading-[1] text-[#2F2F2F] md:text-[12px]">
+                <div>MY</div>
+                <div>NOTES</div>
+              </div>
+            </button>
 
-      <div className="fixed bottom-6 right-6 z-20 flex items-center gap-3 md:bottom-10 md:right-10">
-        <div className="flex items-center rounded-full bg-[#111111] px-3 py-2 font-hand text-[16px] text-white shadow-float">
+            <div
+              className={`pointer-events-auto absolute left-0 bottom-12 z-10 w-[min(250px,calc(100vw-24px))] origin-bottom-left -rotate-[2deg] translate-y-3 scale-90 opacity-0 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.18,0.9,0.2,1)] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 ${
+                isCreditsOpen ? 'translate-y-0 scale-100 opacity-100' : ''
+              }`}
+            >
+              <div className="rounded-[10px] bg-[#FAF1A5] p-4 shadow-note">
+                <div className="flex items-center gap-2 text-[12px] text-[#2F2F2F]/80">
+                  <InstagramIcon className="h-4 w-4" />
+                  <div>
+                    Designed by{' '}
+                    <a
+                      className="text-[#2F2F2F] underline-offset-4 hover:underline"
+                      href="https://www.instagram.com/ayshashabadesigns/"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Aysha Shaba
+                    </a>
+                  </div>
+                </div>
+
+                <div className="mt-2 flex items-center gap-2 text-[12px] text-[#2F2F2F]/80">
+                  <InstagramIcon className="h-4 w-4" />
+                  <div>
+                    Made by{' '}
+                    <a
+                      className="text-[#2F2F2F] underline-offset-4 hover:underline"
+                      href="https://www.instagram.com/fuwad.design"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Fuwad.design
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mx-1 hidden h-8 w-px bg-black/15 md:block" />
+
+          <div className="flex items-center rounded-full px-0.5 text-[14px] md:px-1 md:text-[16px]">
+            <button
+              type="button"
+              className="h-7 w-7 rounded-full transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 md:h-8 md:w-8"
+              onClick={() => setZoom((z) => clamp(Number((z - 0.1).toFixed(2)), MIN_ZOOM, MAX_ZOOM))}
+              aria-label="Zoom out"
+            >
+              −
+            </button>
+            <div className="px-1 text-[12px] tabular-nums text-black/70 sm:px-2 sm:text-[14px]">
+              {Math.round(zoom * 100)}%
+            </div>
+            <button
+              type="button"
+              className="h-7 w-7 rounded-full transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 md:h-8 md:w-8"
+              onClick={() => setZoom((z) => clamp(Number((z + 0.1).toFixed(2)), MIN_ZOOM, MAX_ZOOM))}
+              aria-label="Zoom in"
+            >
+              +
+            </button>
+          </div>
+
+          <div className="mx-1 h-8 w-px bg-black/15 md:mx-1.5" />
+
           <button
             type="button"
-            className="h-8 w-8 rounded-full transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0"
-            onClick={() => setZoom((z) => clamp(Number((z - 0.1).toFixed(2)), MIN_ZOOM, MAX_ZOOM))}
-            aria-label="Zoom out"
+            onClick={openModal}
+            className="shrink-0 rounded-xl bg-black px-3 py-2 text-[15px] text-white shadow-float transition-transform duration-200 hover:-translate-y-1 active:translate-y-0 sm:px-4 sm:text-[16px] md:px-7 md:py-3 md:text-[18px]"
           >
-            −
-          </button>
-          <div className="px-2 tabular-nums">{Math.round(zoom * 100)}%</div>
-          <button
-            type="button"
-            className="h-8 w-8 rounded-full transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0"
-            onClick={() => setZoom((z) => clamp(Number((z + 0.1).toFixed(2)), MIN_ZOOM, MAX_ZOOM))}
-            aria-label="Zoom in"
-          >
-            +
+            Add A Note
           </button>
         </div>
-
-        <button
-          type="button"
-          onClick={openModal}
-          className="rounded-full bg-[#111111] px-7 py-4 font-hand text-[18px] text-white shadow-float transition-transform duration-200 hover:-translate-y-1 active:translate-y-0"
-        >
-          Add A Note
-        </button>
       </div>
 
       {isModalOpen ? (
@@ -805,83 +865,86 @@ function App() {
           aria-modal="true"
         >
           <div className="relative h-full w-full">
-            {prompts.map((p) => (
+            {prompts.map((p, i) => (
               <div
                 key={p.text}
-                className={`absolute ${p.className} items-center rounded-full bg-[#1B1B1B] px-4 py-2 font-hand text-[16px] text-white shadow-prompt`}
+                className={`absolute ${p.className} items-center rounded-full bg-[#1B1B1B] px-4 py-2 font-hand text-[16px] text-white shadow-prompt prompt-in`}
+                style={{ animationDelay: `${60 + i * 45}ms` }}
               >
                 {p.text}
               </div>
             ))}
 
-            <div
-              className="absolute left-1/2 top-1/2 w-[420px] max-w-[90vw] -translate-x-1/2 -translate-y-1/2 rounded-[20px] bg-white p-7 shadow-modal pop-in"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-start justify-between">
-                <div className="font-hand text-[22px] text-[#1F1F1F]">
-                  create a New Note
+            <div className="absolute left-1/2 bottom-0 w-[min(520px,92vw)] -translate-x-1/2 pb-[calc(14px+env(safe-area-inset-bottom))] md:top-1/2 md:bottom-auto md:w-[420px] md:max-w-[90vw] md:-translate-y-1/2 md:pb-0">
+              <div
+                className="max-h-[82vh] overflow-auto rounded-[20px] bg-white p-5 font-modal text-[#2F2F2F] shadow-modal pop-in md:max-h-none md:p-7"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="text-[22px] leading-[1] text-[#1F1F1F] md:text-[26px]">
+                    create a New Note
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="rounded-full px-2 py-1 text-[22px] leading-[1] text-[#1F1F1F]/70 transition-colors hover:text-[#1F1F1F]"
+                    aria-label="Close"
+                  >
+                    ×
+                  </button>
                 </div>
+
+                <div className="mt-5">
+                  <div className="font-hand text-[12px] font-medium tracking-wide text-[#2F2F2F]/60">
+                    choose a color
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    {palette.map((c) => {
+                      const isSelected = c.id === selectedColorId
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setSelectedColorId(c.id)}
+                          className={`relative h-8 w-8 rounded-full transition-transform duration-150 hover:-translate-y-0.5 md:h-9 md:w-9 ${
+                            isSelected ? 'ring-2 ring-[#1F1F1F]' : ''
+                          }`}
+                          style={{ backgroundColor: c.hex }}
+                          aria-label={`Select ${c.id}`}
+                        >
+                          {isSelected ? (
+                            <div className="absolute inset-0 flex items-center justify-center text-[18px] text-[#1F1F1F]">
+                              ✓
+                            </div>
+                          ) : null}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <div className="font-hand text-[12px] font-medium tracking-wide text-[#2F2F2F]/60">
+                    Add your thoughts
+                  </div>
+                  <textarea
+                    value={draftText}
+                    onChange={(e) => setDraftText(e.target.value)}
+                    placeholder="What’s on your mind?"
+                    className="mt-3 h-[200px] w-full resize-none rounded-[12px] p-4 text-[18px] leading-[1.2] text-[#2F2F2F] outline-none placeholder:text-[#2F2F2F]/40 md:h-[280px] md:text-[20px]"
+                    style={{ background: selected.tint }}
+                  />
+                </div>
+
                 <button
                   type="button"
-                  onClick={closeModal}
-                  className="rounded-full px-2 py-1 font-hand text-[18px] text-[#1F1F1F]/70 transition-colors hover:text-[#1F1F1F]"
-                  aria-label="Close"
+                  onClick={addToWall}
+                  disabled={!draftText.trim()}
+                  className="mt-5 w-full rounded-full bg-[#111111] px-6 py-3 text-[18px] text-white shadow-float transition-transform duration-200 hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 md:px-7 md:py-4 md:text-[20px]"
                 >
-                  ×
+                  Add to wall
                 </button>
               </div>
-
-              <div className="mt-5">
-                <div className="text-[12px] font-medium tracking-wide text-[#2F2F2F]/60">
-                  choose a color
-                </div>
-                <div className="mt-3 flex flex-wrap gap-3">
-                  {palette.map((c) => {
-                    const isSelected = c.id === selectedColorId
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => setSelectedColorId(c.id)}
-                        className={`relative h-9 w-9 rounded-full transition-transform duration-150 hover:-translate-y-0.5 ${
-                          isSelected ? 'ring-2 ring-[#1F1F1F]' : ''
-                        }`}
-                        style={{ backgroundColor: c.hex }}
-                        aria-label={`Select ${c.id}`}
-                      >
-                        {isSelected ? (
-                          <div className="absolute inset-0 flex items-center justify-center font-hand text-[18px] text-[#1F1F1F]">
-                            ✓
-                          </div>
-                        ) : null}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="mt-5">
-                <div className="text-[12px] font-medium tracking-wide text-[#2F2F2F]/60">
-                  Add your thoughts
-                </div>
-                <textarea
-                  value={draftText}
-                  onChange={(e) => setDraftText(e.target.value)}
-                  placeholder="What’s on your mind?"
-                  className="mt-3 h-[280px] w-full resize-none rounded-[12px] p-4 font-hand text-[18px] leading-[1.25] text-[#2F2F2F] outline-none placeholder:text-[#2F2F2F]/40"
-                  style={{ background: selected.tint }}
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={addToWall}
-                disabled={!draftText.trim()}
-                className="mt-5 w-full rounded-full bg-[#111111] px-7 py-4 font-hand text-[18px] text-white shadow-float transition-transform duration-200 hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-              >
-                Add to wall
-              </button>
             </div>
           </div>
         </div>

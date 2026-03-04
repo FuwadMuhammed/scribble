@@ -5,6 +5,7 @@ module.exports = {
     extend: {
       fontFamily: {
         hand: ["Patrick Hand", "ui-rounded", "system-ui", "sans-serif"],
+        modal: ["Caveat", "Patrick Hand", "ui-rounded", "system-ui", "sans-serif"],
       },
       boxShadow: {
         note: "0 8px 20px rgba(0,0,0,0.08)",
